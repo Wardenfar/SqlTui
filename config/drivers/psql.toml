@@ -18,7 +18,7 @@ children_type = "schema"
 extra_children = [
     ["<Add Schema>", "white", "database", "CREATE SCHEMA ${Schema name:id};"]
 ]
-open = ["server", ""]
+open = ["database", ""]
 
 [psql.node.schema]
 color = "#34cceb"
@@ -80,11 +80,11 @@ actions = [
 [psql.node.table_column]
 color = "#ffffff"
 actions = [
-    ["Select Distinct Values", "database", "SELECT DISTINCT #{column:id} FROM #{table:id};"]
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{table_column:id} FROM #{table:id};"]
 ]
 
 [psql.node.view_column]
 color = "#ffffff"
 actions = [
-    ["Select Distinct Values", "database", "SELECT DISTINCT #{column:id} FROM #{view:id};"]
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{view_column:id} FROM #{view:id};"]
 ]

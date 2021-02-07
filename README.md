@@ -1,5 +1,7 @@
 # SqlTui : All your sql servers in one tool
 
+[![asciicast](https://asciinema.org/a/qErCo8pTVWQGAyB02aRlDKibg.png)](https://asciinema.org/a/qErCo8pTVWQGAyB02aRlDKibg)
+
  - **FullScreen app**
  - Support for : **Mysql**, **PostgreSQL**
  - **Fully Configurable**
