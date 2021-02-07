@@ -1,0 +1,7 @@
+prompt_toolkit
+six
+toml
+pygments
+psycopg2
+mysql-connector-python
+rich

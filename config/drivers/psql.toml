@@ -1,0 +1,90 @@
+[driver.psql]
+full_name = "postgresql"
+root = "server"
+
+[psql.node.server]
+color = "#ff0000"
+children_query = ["server", "SELECT datname FROM pg_database WHERE datistemplate = false;"]
+children_type = "database"
+extra_children = [
+    ["<Add Database>", "white", "server", "CREATE DATABASE ${Database name:id};"]
+]
+open = true
+
+[psql.node.database]
+color = "#ffff00"
+children_query = ["database", "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname <> 'information_schema';"]
+children_type = "schema"
+extra_children = [
+    ["<Add Schema>", "white", "database", "CREATE SCHEMA ${Schema name:id};"]
+]
+open = ["server", ""]
+
+[psql.node.schema]
+color = "#34cceb"
+children_array = [
+    ['tables', 'Tables'],
+    ['views', 'Views'],
+]
+open = ["database", "SET search_path = #{schema:id};\n"]
+
+
+[psql.node.tables]
+color = "#00ffff"
+children_query = ["database", "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname !~ '^pg_' AND schemaname <> 'information_schema';"]
+children_type = "table"
+extra_children = [
+    ["<Add Table>", "white", "database", "CREATE TABLE #{schema:id}.${Table Name:id} (${Columns Definition});"]
+]
+
+[psql.node.table]
+color = "#00ffff"
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{table:text};"]
+children_type = "table_column"
+extra_children = [
+    ["<Add Column>", "white", "database", "ALTER TABLE #{schema:id}.#{table:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
+]
+actions = [
+    ["Count", "database", "SELECT COUNT(*) FROM #{schema:id}.#{table:id};"],
+    ["Select Limit", "database", "SELECT * FROM #{schema:id}.#{table:id} LIMIT ${Limit};"],
+    ["Select ? Where ?", "database", "SELECT ${Columns} FROM #{schema:id}.#{table:id} WHERE ${Where};"],
+    ["Insert One", "database", "INSERT INTO #{schema:id}.#{table:id} (${Columns}) VALUES (${Values});"],
+    ["Delete Where ?", "database", "DELETE FROM #{schema:id}.#{table:id} WHERE ${Where};"],
+    ["Drop Table", "database", "DROP TABLE #{schema:id}.#{table:id};"]
+]
+
+[psql.node.views]
+color = "#ff00ff"
+children_query = ["database", "SELECT DISTINCT table_name FROM information_schema.views WHERE table_schema = #{schema:text} ORDER BY table_name;"]
+children_type = "view"
+extra_children = [
+    ["<Add View AS ?>", "white", "database", "CREATE VIEW #{schema:id}.${View Name:id} AS ${AS Query};"]
+]
+
+[psql.node.view]
+color = "#ff00ff"
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{view:text};"]
+children_type = "view_column"
+extra_children = [
+    ["<Add Column>", "white", "database", "ALTER TABLE #{schema:id}.#{view:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
+]
+actions = [
+    ["Count", "database", "SELECT COUNT(*) FROM #{schema:id}.#{view:id};"],
+    ["Select Limit", "database", "SELECT * FROM #{schema:id}.#{view:id} LIMIT ${Limit};"],
+    ["Select ? Where ?", "database", "SELECT ${Columns} FROM #{schema:id}.#{view:id} WHERE ${Where};"],
+    ["Insert One", "database", "INSERT INTO #{schema:id}.#{view:id} (${Columns}) VALUES (${Values});"],
+    ["Show Definition", "database", "SELECT definition FROM pg_views WHERE schemaname = #{schema:text} AND viewname = #{view:text}"],
+    ["Replace View AS ?", "database", "DROP VIEW IF EXISTS #{schema:id}.#{view:id};CREATE VIEW #{schema:id}.#{view:id} AS ${As Query};"]
+]
+
+[psql.node.table_column]
+color = "#ffffff"
+actions = [
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{column:id} FROM #{table:id};"]
+]
+
+[psql.node.view_column]
+color = "#ffffff"
+actions = [
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{column:id} FROM #{view:id};"]
+]

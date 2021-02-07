@@ -1,0 +1,42 @@
+[driver.mysql]
+full_name = "MySql"
+root = "server"
+
+[mysql.node.server]
+color = "#ff0000"
+children_query = ["server", "SHOW DATABASES;"]
+children_type = "database"
+extra_children = [
+    ["<Add Database>", "white", "server", "CREATE DATABASE ${Database name:id};"]
+]
+open = ["server", ""]
+
+[mysql.node.database]
+color = "#ffff00"
+children_query = ["database", "SHOW TABLES;"]
+children_type = "table"
+extra_children = [
+    ["<Add Table>", "white", "database", "CREATE TABLE ${Table name:id} (${Columns defintion});"]
+]
+open = ["database", ""]
+
+[mysql.node.table]
+color = "#00ffff"
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', column_type, ']') FROM information_schema.columns WHERE table_schema = #{database:text} AND table_name = #{table:text};;"]
+children_type = "column"
+extra_children = [
+    ["<Add Column>", "white", "database", "ALTER TABLE #{table:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
+]
+actions = [
+    ["Count", "database", "SELECT COUNT(*) FROM #{table:id};"],
+    ["Select Limit", "database", "SELECT * FROM #{table:id} LIMIT ${Limit};"],
+    ["Select ? Where ?", "database", "SELECT ${Select} FROM #{table:id} WHERE ${Where};"],
+    ["Delete Where ?", "database", "DELETE FROM #{table:id} WHERE ${Where};"],
+    ["Drop", "database", "DROP TABLE #{table:id};"]
+]
+
+[mysql.node.column]
+color = "#ffffff"
+actions = [
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{column:id} FROM #{table:id};"]
+]

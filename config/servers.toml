@@ -1,0 +1,15 @@
+[servers]
+
+[servers.server1]
+driver = 'psql'
+user = 'admin'
+password = 'admin'
+host = 'localhost'
+port = '5432'
+
+[servers.server2]
+driver = 'mysql'
+user = 'admin'
+password = 'admin'
+host = 'localhost'
+port = '3306'
