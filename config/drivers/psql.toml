@@ -31,7 +31,7 @@ open = ["database", "SET search_path = #{schema:id};\n"]
 
 [psql.node.tables]
 color = "#00ffff"
-children_query = ["database", "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname !~ '^pg_' AND schemaname <> 'information_schema';"]
+children_query = ["database", " SELECT sub.table_name, CONCAT(sub.table_name, ' [', (xpath('/row/cnt/text()', sub.xml_count))[1]::text, ']') FROM ( SELECT table_name, table_schema, query_to_xml(format('select count(*) as cnt from %I.%I', table_schema, table_name), false, true, '') as xml_count FROM information_schema.tables WHERE table_schema = #{schema:text} ) AS sub;"]
 children_type = "table"
 extra_children = [
     ["<Add Table>", "white", "database", "CREATE TABLE #{schema:id}.${Table Name:id} (${Columns Definition});"]
@@ -39,7 +39,7 @@ extra_children = [
 
 [psql.node.table]
 color = "#00ffff"
-children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{table:text};"]
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{table:text}; ORDER BY column_name;"]
 children_type = "table_column"
 extra_children = [
     ["<Add Column>", "white", "database", "ALTER TABLE #{schema:id}.#{table:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
@@ -47,6 +47,7 @@ extra_children = [
 actions = [
     ["Count", "database", "SELECT COUNT(*) FROM #{schema:id}.#{table:id};"],
     ["Select Limit", "database", "SELECT * FROM #{schema:id}.#{table:id} LIMIT ${Limit};"],
+    ["Select All", "database", "SELECT * FROM #{schema:id}.#{table:id};"],
     ["Select ? Where ?", "database", "SELECT ${Columns} FROM #{schema:id}.#{table:id} WHERE ${Where};"],
     ["Insert One", "database", "INSERT INTO #{schema:id}.#{table:id} (${Columns}) VALUES (${Values});"],
     ["Delete Where ?", "database", "DELETE FROM #{schema:id}.#{table:id} WHERE ${Where};"],
@@ -55,7 +56,7 @@ actions = [
 
 [psql.node.views]
 color = "#ff00ff"
-children_query = ["database", "SELECT DISTINCT table_name FROM information_schema.views WHERE table_schema = #{schema:text} ORDER BY table_name;"]
+children_query = ["database", "SELECT sub.table_name, CONCAT(sub.table_name, ' [', (xpath('/row/cnt/text()', sub.xml_count))[1]::text, ']') FROM ( SELECT table_name, table_schema, query_to_xml(format('select count(*) as cnt from %I.%I', table_schema, table_name), false, true, '') as xml_count FROM information_schema.views WHERE table_schema = #{schema:text} ) AS sub;"]
 children_type = "view"
 extra_children = [
     ["<Add View AS ?>", "white", "database", "CREATE VIEW #{schema:id}.${View Name:id} AS ${AS Query};"]
@@ -63,7 +64,7 @@ extra_children = [
 
 [psql.node.view]
 color = "#ff00ff"
-children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{view:text};"]
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']')  FROM information_schema.columns  WHERE table_schema = #{schema:text}  AND table_name = #{view:text};  ORDER BY column_name;"]
 children_type = "view_column"
 extra_children = [
     ["<Add Column>", "white", "database", "ALTER TABLE #{schema:id}.#{view:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
@@ -71,6 +72,7 @@ extra_children = [
 actions = [
     ["Count", "database", "SELECT COUNT(*) FROM #{schema:id}.#{view:id};"],
     ["Select Limit", "database", "SELECT * FROM #{schema:id}.#{view:id} LIMIT ${Limit};"],
+    ["Select All", "database", "SELECT * FROM #{schema:id}.#{view:id};"],
     ["Select ? Where ?", "database", "SELECT ${Columns} FROM #{schema:id}.#{view:id} WHERE ${Where};"],
     ["Insert One", "database", "INSERT INTO #{schema:id}.#{view:id} (${Columns}) VALUES (${Values});"],
     ["Show Definition", "database", "SELECT definition FROM pg_views WHERE schemaname = #{schema:text} AND viewname = #{view:text}"],
@@ -80,11 +82,13 @@ actions = [
 [psql.node.table_column]
 color = "#ffffff"
 actions = [
-    ["Select Distinct Values", "database", "SELECT DISTINCT #{table_column:id} FROM #{table:id};"]
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{table_column:id} FROM #{table:id};"],
+    ["Select All Values", "database", "SELECT #{table_column:id} FROM #{table:id};"]
 ]
 
 [psql.node.view_column]
 color = "#ffffff"
 actions = [
-    ["Select Distinct Values", "database", "SELECT DISTINCT #{view_column:id} FROM #{view:id};"]
+    ["Select Distinct Values", "database", "SELECT DISTINCT #{view_column:id} FROM #{view:id};"],
+    ["Select All Values", "database", "SELECT #{view_column:id} FROM #{view:id};"]
 ]
