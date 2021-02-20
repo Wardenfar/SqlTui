@@ -1,3 +1,4 @@
+from _ast import Not
 from os import walk
 from os.path import join
 
@@ -15,6 +16,9 @@ class Connection:
 
     def name(self):
         raise NotImplemented("name not implemented")
+
+    def connect(self):
+        raise NotImplemented('connect not implemented')
 
     def execute(self, query):
         raise NotImplemented("execute not implemented")
@@ -45,8 +49,8 @@ class PsqlConnection(Connection):
         dsn = dsn.copy()
         del dsn['driver']
         self.dsn = dsn
-        import psycopg2
-        self.conn = psycopg2.connect(**dsn)
+        self.conn = None
+        self.connect()
 
     def __str__(self):
         name = 'Database <' + self.dsn['database'] + '>' if 'database' in self.dsn else 'Server'
@@ -58,7 +62,11 @@ class PsqlConnection(Connection):
     def lexer(self):
         return PostgresLexer
 
-    def execute(self, query):
+    def connect(self):
+        import psycopg2
+        self.conn = psycopg2.connect(**self.dsn)
+
+    def execute(self, query, reconnect=False):
         conn = self.conn
         try:
             with conn.cursor() as cursor:
@@ -77,7 +85,7 @@ class PsqlConnection(Connection):
 
                 return result, columns
         except Exception as e:
-            if not conn.isolation_level or conn.isolation_level > 0:
+            if reconnect and (not conn.isolation_level or conn.isolation_level > 0):
                 conn.rollback()
 
             if 'cannot run inside a transaction block' in str(e):
@@ -86,6 +94,12 @@ class PsqlConnection(Connection):
                     final = self.execute(query)
                     conn.set_isolation_level(1)
                     return final
+            elif not reconnect:
+                try:
+                    self.connect()
+                    return self.execute(query, True)
+                except Exception as e2:
+                    raise e
             else:
                 raise e
 
@@ -123,8 +137,8 @@ class MySqlConnection(Connection):
         dsn = dsn.copy()
         del dsn['driver']
         self.dsn = dsn
-        import mysql.connector
-        self.conn = mysql.connector.connect(**dsn)
+        self.conn = None
+        self.connect()
 
     def __str__(self):
         name = 'Database <' + self.dsn['database'] + '>' if 'database' in self.dsn else 'Server'
@@ -133,10 +147,14 @@ class MySqlConnection(Connection):
     def lexer(self):
         return MySqlLexer
 
+    def connect(self):
+        import mysql.connector
+        self.conn = mysql.connector.connect(**self.dsn)
+
     def name(self):
         return self.dsn['host'] + ':' + self.dsn['port']
 
-    def execute(self, query):
+    def execute(self, query, reconnect=False):
         conn = self.conn
         try:
             with conn.cursor() as cursor:
@@ -155,7 +173,14 @@ class MySqlConnection(Connection):
 
                 return result, columns
         except Exception as e:
-            raise e
+            if not reconnect:
+                try:
+                    self.connect()
+                    self.execute(query, True)
+                except Exception as e2:
+                    raise e
+            else:
+                raise e
 
     def close(self):
         self.conn.close()
