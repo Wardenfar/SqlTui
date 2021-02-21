@@ -93,7 +93,7 @@ def buttons_dialog(title='', buttons_data=[], cancel_text='Cancel'):
     get_app().invalidate()
 
 
-def inputs_dialog(callback, title='', inputs_data=[]):
+def inputs_dialog(callback, title='', subtitle='', inputs_data=[]):
     def ok_handler():
         result = {}
         index = 0
@@ -118,7 +118,7 @@ def inputs_dialog(callback, title='', inputs_data=[]):
 
     dialog = CustomDialog(
         title=title,
-        body=HSplit(inputs),
+        body=HSplit([Label(subtitle), Label('')] + inputs),
         buttons=[ok_button, cancel_button],
         width=D(min=120),
         with_background=False)

@@ -52,7 +52,7 @@ def execute_params(tab_name, conn, query, after=None):
                 new_query = new_query.replace('${' + m + '}', conn.escape(type, value))
             execute(tab_name, conn, new_query, after)
 
-        inputs_dialog(callback, 'Enter params', names)
+        inputs_dialog(callback, 'Enter params', query, names)
     else:
         execute(tab_name, conn, query, after)
 

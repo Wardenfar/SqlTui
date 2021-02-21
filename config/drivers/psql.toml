@@ -15,11 +15,18 @@ color = "#ffff00"
 children_query = ["server", "SELECT r.rolname, CONCAT( r.rolname, ' ', CASE WHEN r.rolsuper IS true THEN '[Super]' ELSE '[]' END ) FROM pg_catalog.pg_roles r WHERE r.rolname !~ '^pg_' ORDER BY r.rolname;"]
 children_type = "user"
 extra_children = [
-    ["<Add User>", "white", "server", "CREATE DATABASE ${Database name:id};"]
+    ["<Add User>", "white", "server", "CREATE USER ${Username} with encrypted password ${Password:text};"]
 ]
 
 [psql.node.user]
 color = "#ffffff"
+actions = [
+    ["Grant SuperUser", "server", "ALTER USER #{user} WITH SUPERUSER;"],
+    ["Grant Database", "server", "GRANT ALL PRIVILEGES ON DATABASE ${Database:id} TO #{user};"],
+    ["Revoke Database", "server", "REVOKE ALL PRIVILEGES ON DATABASE ${Database:id} FROM #{user};"],
+    ["Remove SuperUser", "server", "ALTER USER #{user} WITH NOSUPERUSER;"],
+    ["Drop", "server", "DROP USER #{user};"]
+]
 
 [psql.node.databases]
 color = "#ff00ff"
@@ -58,7 +65,7 @@ extra_children = [
 
 [psql.node.table]
 color = "#00ffff"
-children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{table:text}; ORDER BY column_name;"]
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']') FROM information_schema.columns WHERE table_schema = #{schema:text} AND table_name = #{table:text} ORDER BY column_name;"]
 children_type = "table_column"
 extra_children = [
     ["<Add Column>", "white", "database", "ALTER TABLE #{schema:id}.#{table:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
