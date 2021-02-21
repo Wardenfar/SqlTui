@@ -88,6 +88,7 @@ class Tree(UIControl):
         self.dirty = True
         self.content = []
         self.indexes = {}
+        self.depths = {}
         self.refresh()
 
     def refresh(self):
@@ -109,6 +110,7 @@ class Tree(UIControl):
 
     def explore(self, parent, level):
         self.indexes[len(self.content)] = parent
+        self.depths[len(self.content)] = level
         if self.cursorItem == parent and self.cursorIndex != len(self.content):
             self.cursorIndex = len(self.content)
             if self.selected_callback:
@@ -154,6 +156,33 @@ class Tree(UIControl):
         @kb.add('Up', 'Up', Keys.Up)
         def _(event):
             offsetCursor(-1)
+
+        @kb.add('Goto Parent', 'Shift-Up', Keys.ShiftUp)
+        def _(event):
+            depth = self.depths[self.cursorIndex]
+            if self.cursorIndex > 0 and self.depths[self.cursorIndex - 1] < depth:
+                offsetCursor(-1)
+            else:
+                for i in range(self.cursorIndex - 1, -1, -1):
+                    if self.depths[i] < depth:
+                        offsetCursor(i - self.cursorIndex)
+                        break
+
+        @kb.add('Goto Next', 'Shift-Down', Keys.ShiftDown)
+        def _(event):
+            depth = self.depths[self.cursorIndex]
+            found = False
+            for i in range(self.cursorIndex + 1, len(self.content), 1):
+                if self.depths[i] == depth:
+                    offsetCursor(i - self.cursorIndex)
+                    found = True
+                    break
+            if not found:
+                for i in range(self.cursorIndex + 1, len(self.content), 1):
+                    if self.depths[i] > depth:
+                        offsetCursor(i - self.cursorIndex)
+                        found = True
+                        break
 
         @kb.add(None, None, "space")
         @kb.add('Toggle', 'Enter', "enter")
