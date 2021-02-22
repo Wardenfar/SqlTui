@@ -123,7 +123,11 @@ class DbTreeItem(TreeItem):
         else:
             self.name = str(data)
 
-        super().__init__(tree, FILE_ITEM_NODE, [(self.node_data['color'], self.name)], False, callback, None)
+        isOpen = False
+        if 'open' in self.node_data and self.node_data['open'] is True:
+            isOpen = True
+
+        super().__init__(tree, FILE_ITEM_NODE, [(self.node_data['color'], self.name)], isOpen, callback, None)
 
 
 class DatabaseTree:

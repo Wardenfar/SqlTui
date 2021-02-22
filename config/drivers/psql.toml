@@ -8,7 +8,6 @@ children_array = [
     ['databases', 'Databases'],
     ['users', 'Users And Roles'],
 ]
-open = true
 
 [psql.node.users]
 color = "#ffff00"
