@@ -50,6 +50,7 @@ color = "#34cceb"
 children_array = [
     ['tables', 'Tables'],
     ['views', 'Views'],
+    ['functions', 'Functions'],
 ]
 open = ["database", "SET search_path = #{schema:id};\n"]
 
@@ -89,7 +90,7 @@ extra_children = [
 
 [psql.node.view]
 color = "#ff00ff"
-children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']')  FROM information_schema.columns  WHERE table_schema = #{schema:text}  AND table_name = #{view:text};  ORDER BY column_name;"]
+children_query = ["database", "SELECT column_name, CONCAT(column_name, ' [', data_type, ']')  FROM information_schema.columns  WHERE table_schema = #{schema:text}  AND table_name = #{view:text} ORDER BY column_name;"]
 children_type = "view_column"
 extra_children = [
     ["<Add Column>", "white", "database", "ALTER TABLE #{schema:id}.#{view:id} ADD COLUMN ${Column Name:id} ${Column Type};"]
@@ -117,3 +118,14 @@ actions = [
     ["Select Distinct Values", "database", "SELECT DISTINCT #{view_column:id} FROM #{view:id};"],
     ["Select All Values", "database", "SELECT #{view_column:id} FROM #{view:id};"]
 ]
+
+[psql.node.functions]
+color = "#ffaaaa"
+children_query = ["database", "SELECT routines.routine_name FROM information_schema.routines WHERE routines.specific_schema = #{schema:text} GROUP BY routines.routine_name ORDER BY routines.routine_name;"]
+children_type = "function"
+extra_children = [
+    ["<Add Function AS ?>", "white", "database", "CREATE VIEW #{schema:id}.${View Name:id} AS ${AS Query};"]
+]
+
+[psql.node.function]
+color = "#ffffff"

@@ -66,10 +66,11 @@ class DbTreeItem(TreeItem):
         self.tree.execute(tab_name, conn, replacedQuery, after)
 
     def create_button(self, button):
-        def visit_callback():
-            self.execute(button[1], button[2], button[3])
+        def visit_callback(indexing=False):
+            if not indexing:
+                self.execute(button[1], button[2], button[3])
 
-        return TreeItem(self.tree, FILE_ITEM_LEAF, [(button[1], button[0])], False, visit_callback, None)
+        return TreeItem(self.tree, self, FILE_ITEM_LEAF, [(button[1], button[0])], False, visit_callback, None)
 
     def get_connection(self, type):
         if type not in self.connections:
@@ -79,13 +80,13 @@ class DbTreeItem(TreeItem):
             conn = self.connections[type]
         return conn
 
-    def visit_callback(self):
+    def visit_callback(self, indexing=False):
         children = []
         if 'children_array' in self.node_data:
             array = self.node_data['children_array']
             for row in array:
                 children.append(
-                    DbTreeItem(self.tree, row[0], self.connections.copy(), (row[1],),
+                    DbTreeItem(self.tree, self, row[0], self.connections.copy(), (row[1],),
                                self.parents.copy()))
         else:
             query_data = self.node_data['children_query']
@@ -95,7 +96,7 @@ class DbTreeItem(TreeItem):
 
             for r in result:
                 children.append(
-                    DbTreeItem(self.tree, self.node_data['children_type'], self.connections.copy(), r,
+                    DbTreeItem(self.tree, self, self.node_data['children_type'], self.connections.copy(), r,
                                self.parents.copy()))
 
         if 'extra_children' in self.node_data:
@@ -103,7 +104,7 @@ class DbTreeItem(TreeItem):
                 children.append(self.create_button(button))
         return children
 
-    def __init__(self, tree, key, connections, data, parents):
+    def __init__(self, tree, parent, key, connections, data, parents):
         self.key = key
         self.connections = connections
         self.data = data
@@ -127,7 +128,7 @@ class DbTreeItem(TreeItem):
         if 'open' in self.node_data and self.node_data['open'] is True:
             isOpen = True
 
-        super().__init__(tree, FILE_ITEM_NODE, [(self.node_data['color'], self.name)], isOpen, callback, None)
+        super().__init__(tree, parent, FILE_ITEM_NODE, [(self.node_data['color'], self.name)], isOpen, callback, None)
 
 
 class DatabaseTree:
@@ -218,7 +219,7 @@ class DatabaseTree:
 
         root = Root(dsn, driver)
 
-        serverItem = DbTreeItem(self.tree, driver.root, {}, root, {'__root__': root})
+        serverItem = DbTreeItem(self.tree, None, driver.root, {}, root, {'__root__': root})
         self.tree.roots.insert(0, serverItem)
         self.tree.cursorItem = serverItem
 

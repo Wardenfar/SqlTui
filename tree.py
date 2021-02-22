@@ -1,8 +1,12 @@
+import json
+
 from prompt_toolkit.application import get_app
+from prompt_toolkit.filters import Condition
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import UIControl, UIContent
 from prompt_toolkit.utils import Event
 
+from dialogs import loading_dialog, remove_float, input_dialog, inputs_dialog, buttons_dialog
 from keys import CustomKeyBindings
 
 FILE_ITEM_NODE = 'node'
@@ -10,7 +14,8 @@ FILE_ITEM_LEAF = 'leaf'
 
 
 class TreeItem:
-    def __init__(self, tree, node_type, formattedText, isOpen, visit_callback, selected_callback):
+    def __init__(self, tree, parent, node_type, formattedText, isOpen, visit_callback, selected_callback):
+        self.parent = parent
         self.tree = tree
         self.node_type = node_type
         self.formattedText = formattedText
@@ -20,6 +25,12 @@ class TreeItem:
         self.selected_callback = selected_callback
         if isOpen and node_type == FILE_ITEM_NODE:
             self.open()
+
+    def plain_text(self):
+        text = ''
+        for part in self.formattedText:
+            text += part[1]
+        return text
 
     def hash(self):
         return self.formattedText
@@ -60,20 +71,26 @@ class TreeItem:
                 if new.hash() not in oldHash and new.hash() not in unchanged:
                     self.children.insert(newChildren.index(new), new)
 
-    def open(self):
+    def open(self, indexing=False):
         if self.node_type == FILE_ITEM_NODE and self.isOpen:
             return
 
-        self.isOpen = True
-        if self.visit_callback:
-            self.children = self.visit_callback()
+        if not indexing:
+            self.isOpen = True
+
+        if not self.children and self.visit_callback:
+            self.children = self.visit_callback(indexing=indexing)
+
+        if not self.parent:
+            self.tree.explore_index(self, 0, {"count": 0})
+
         get_app().invalidate()
 
     def close(self):
         if self.node_type == FILE_ITEM_NODE and not self.isOpen:
             return
         self.isOpen = False
-        self.children = []
+        # self.children = []
         get_app().invalidate()
 
 
@@ -127,8 +144,37 @@ class Tree(UIControl):
 
         self.content.append(line)
 
-        for child in parent.children:
-            self.explore(child, level + 1)
+        if parent.isOpen:
+            for child in parent.children:
+                self.explore(child, level + 1)
+
+    def explore_index(self, parent, level, stats):
+        if not parent.isOpen:
+            parent.open(indexing=True)
+
+        if parent.children:
+            stats['count'] += len(parent.children)
+
+            for child in parent.children:
+                self.explore_index(child, level + 1, stats)
+
+        # if level == 0:
+        #     raise Exception(stats['count'])
+
+    def search_recursive(self, search, parent, results):
+        if parent:
+            if search == parent.plain_text():
+                results.append(parent)
+            if parent.children:
+                for child in parent.children:
+                    self.search_recursive(search, child, results)
+        return results
+
+    def get_root_selected(self):
+        curr = self.cursorItem
+        while curr.parent:
+            curr = curr.parent
+        return curr
 
     def get_key_bindings(self):
         kb = CustomKeyBindings()
@@ -148,6 +194,8 @@ class Tree(UIControl):
                 self.cursorItem.selected_callback()
 
             self.invalidateEvent.fire()
+
+        current_is_root = Condition(lambda: self.cursorItem in self.roots)
 
         @kb.add('Down', 'Down', Keys.Down)
         def _(event):
@@ -192,6 +240,43 @@ class Tree(UIControl):
             elif len(self.roots) > 0:
                 self.cursorItem = self.roots[0]
                 self.cursorItem.toggle()
+
+        @kb.add('Index All Tree', 'F6', Keys.F6, filter=current_is_root)
+        def _(event):
+            float_dialog = loading_dialog(title='Indexing')
+            self.explore_index(self.cursorItem, 0, {"count": 0})
+            remove_float(float_dialog)
+
+        @kb.add('Search', '/', '/')
+        def _(event):
+            def callback(result):
+                search_results = self.search_recursive(result['Search'], self.get_root_selected(), [])
+                if len(search_results) == 0:
+                    return
+
+                def to_button(item):
+                    parents = [item]
+                    curr = item
+                    while curr.parent:
+                        parents.append(curr.parent)
+                        curr = curr.parent
+                    parents = parents[::-1]
+                    text = ''
+                    prefix = ''
+                    for p in parents:
+                        text += prefix + p.plain_text()
+                        prefix = ' / '
+                    if len(text) > 120:
+                        text = text[-120:len(text)]
+                    return [text, lambda: 1+1]
+
+                buttons = []
+                for r in search_results:
+                    buttons.append(to_button(r))
+
+                buttons_dialog('Results', buttons_data=buttons)
+
+            inputs_dialog(callback, title="Enter a search", inputs_data=['Search'])
 
         return kb
 

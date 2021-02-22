@@ -157,7 +157,8 @@ root_container = FloatContainer(
         ]),
         Window(
             content=windows['bindings_toolbar'],
-            height=1
+            height=2,
+            wrap_lines=True
         )
     ]),
     floats=[]
@@ -249,7 +250,7 @@ def before_render(event):
         if is_true(b.filter) and hasattr(b, 'name') and b.name:
             text.append(('', b.name + ' '))
             text.append(('reverse', '[' + b.pretty_key + ']'))
-            text.append(('', ' '))
+            text.append(('', ' | '))
 
     for b in kb.bindings:
         add_binding(b)

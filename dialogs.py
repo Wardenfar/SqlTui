@@ -81,7 +81,7 @@ def buttons_dialog(title='', buttons_data=[], cancel_text='Cancel'):
         title=title,
         body=HSplit(buttons),
         buttons=[cancel_button],
-        width=D(min=50),
+        width=D(min=120),
         with_background=False)
 
     float_dialog = Float(
@@ -130,6 +130,22 @@ def inputs_dialog(callback, title='', subtitle='', inputs_data=[]):
     get_app().layout.container.floats.append(float_dialog)
     get_app().layout.focus(inputs[1])
     get_app().invalidate()
+
+
+def loading_dialog(title=''):
+    dialog = CustomDialog(
+        title=title,
+        body=HSplit([Label(''), Label('....'), Label('')]),
+        width=D(min=120),
+        with_background=False)
+
+    float_dialog = Float(
+        content=dialog
+    )
+
+    get_app().layout.container.floats.append(float_dialog)
+    get_app().invalidate()
+    return float_dialog
 
 
 class CustomDialog(object):
