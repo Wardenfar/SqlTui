@@ -163,7 +163,7 @@ class Tree(UIControl):
 
     def search_recursive(self, search, parent, results):
         if parent:
-            if search == parent.plain_text():
+            if search in parent.plain_text():
                 results.append(parent)
             if parent.children:
                 for child in parent.children:
@@ -175,6 +175,15 @@ class Tree(UIControl):
         while curr.parent:
             curr = curr.parent
         return curr
+
+    def reveal_item(self, item):
+        curr = item
+        while curr.parent:
+            curr.open()
+            curr = curr.parent
+        self.cursorItem = item
+        self.refresh()
+        get_app().invalidate()
 
     def get_key_bindings(self):
         kb = CustomKeyBindings()
@@ -266,9 +275,9 @@ class Tree(UIControl):
                     for p in parents:
                         text += prefix + p.plain_text()
                         prefix = ' / '
-                    if len(text) > 120:
-                        text = text[-120:len(text)]
-                    return [text, lambda: 1+1]
+                    if len(text) > 110:
+                        text = text[-110:]
+                    return [text, lambda: self.reveal_item(item)]
 
                 buttons = []
                 for r in search_results:
