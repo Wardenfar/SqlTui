@@ -106,6 +106,8 @@ class Tree(UIControl):
         self.content = []
         self.indexes = {}
         self.depths = {}
+        self.search_mode = False
+        self.search_results = []
         self.refresh()
 
     def refresh(self):
@@ -163,8 +165,11 @@ class Tree(UIControl):
 
     def search_recursive(self, search, parent, results):
         if parent:
-            if search in parent.plain_text():
+            if parent.plain_text().startswith(search):
+                results.insert(0, parent)
+            elif search in parent.plain_text():
                 results.append(parent)
+
             if parent.children:
                 for child in parent.children:
                     self.search_recursive(search, child, results)
@@ -204,17 +209,18 @@ class Tree(UIControl):
 
             self.invalidateEvent.fire()
 
+        in_search_mode = Condition(lambda: self.search_mode)
         current_is_root = Condition(lambda: self.cursorItem in self.roots)
 
-        @kb.add('Down', 'Down', Keys.Down)
+        @kb.add('Down', 'Down', Keys.Down, filter=~in_search_mode)
         def _(event):
             offsetCursor(1)
 
-        @kb.add('Up', 'Up', Keys.Up)
+        @kb.add('Up', 'Up', Keys.Up, filter=~in_search_mode)
         def _(event):
             offsetCursor(-1)
 
-        @kb.add('Goto Parent', 'Shift-Up', Keys.ShiftUp)
+        @kb.add('Goto Parent', 'Shift-Up', Keys.ShiftUp, filter=~in_search_mode)
         def _(event):
             depth = self.depths[self.cursorIndex]
             if self.cursorIndex > 0 and self.depths[self.cursorIndex - 1] < depth:
@@ -225,7 +231,7 @@ class Tree(UIControl):
                         offsetCursor(i - self.cursorIndex)
                         break
 
-        @kb.add('Goto Next', 'Shift-Down', Keys.ShiftDown)
+        @kb.add('Goto Next', 'Shift-Down', Keys.ShiftDown, filter=~in_search_mode)
         def _(event):
             depth = self.depths[self.cursorIndex]
             found = False
@@ -242,7 +248,7 @@ class Tree(UIControl):
                         break
 
         @kb.add(None, None, "space")
-        @kb.add('Toggle', 'Enter', "enter")
+        @kb.add('Toggle', 'Enter', "enter", filter=~in_search_mode)
         def _(event):
             if self.cursorItem is not None:
                 self.cursorItem.toggle()
@@ -250,42 +256,43 @@ class Tree(UIControl):
                 self.cursorItem = self.roots[0]
                 self.cursorItem.toggle()
 
-        @kb.add('Index All Tree', 'F6', Keys.F6, filter=current_is_root)
+        @kb.add('Index All Tree', 'F6', Keys.F6, filter=~in_search_mode & current_is_root)
         def _(event):
             float_dialog = loading_dialog(title='Indexing')
             self.explore_index(self.cursorItem, 0, {"count": 0})
             remove_float(float_dialog)
 
-        @kb.add('Search', '/', '/')
+        @kb.add('Search', '/', '/', filter=~in_search_mode)
         def _(event):
             def callback(result):
                 search_results = self.search_recursive(result['Search'], self.get_root_selected(), [])
                 if len(search_results) == 0:
                     return
 
-                def to_button(item):
-                    parents = [item]
-                    curr = item
-                    while curr.parent:
-                        parents.append(curr.parent)
-                        curr = curr.parent
-                    parents = parents[::-1]
-                    text = ''
-                    prefix = ''
-                    for p in parents:
-                        text += prefix + p.plain_text()
-                        prefix = ' / '
-                    if len(text) > 110:
-                        text = text[-110:]
-                    return [text, lambda: self.reveal_item(item)]
-
-                buttons = []
-                for r in search_results:
-                    buttons.append(to_button(r))
-
-                buttons_dialog('Results', buttons_data=buttons)
+                self.search_mode = True
+                self.search_results = search_results
+                self.reveal_item(search_results[0])
+                get_app().invalidate()
 
             inputs_dialog(callback, title="Enter a search", inputs_data=['Search'])
+
+        @kb.add('Next', 'Down', Keys.Down, filter=in_search_mode)
+        def _(event):
+            index = self.search_results.index(self.cursorItem)
+            index = (index + 1) % len(self.search_results)
+            self.reveal_item(self.search_results[index])
+
+        @kb.add('Prev', 'Up', Keys.Up, filter=in_search_mode)
+        def _(event):
+            index = self.search_results.index(self.cursorItem)
+            index = (index - 1) % len(self.search_results)
+            self.reveal_item(self.search_results[index])
+
+        @kb.add('Exit Search Mode', 'Esc', Keys.Escape, filter=in_search_mode)
+        def _(event):
+            self.search_mode = False
+            self.search_results = []
+            get_app().invalidate()
 
         return kb
 
@@ -309,12 +316,15 @@ class Tree(UIControl):
             offset = height // 2 - cursor
 
         def get_line(index):
-            withOffset = index - offset
-            if withOffset < 0 or withOffset >= len(self.indexes.keys()):
+            if self.search_mode and index == height - 1:
+                return [('reverse', ' Search' + (' ' * (width - 7)))]
+
+            with_offset = index - offset
+            if with_offset < 0 or with_offset >= len(self.indexes.keys()):
                 return [('', '')]
 
-            line = self.content[withOffset]
-            if withOffset == cursor:
+            line = self.content[with_offset]
+            if with_offset == cursor:
                 line = line.copy()
                 for i in range(1, len(line)):
                     line[i] = ('reverse ' + line[i][0], line[i][1])
@@ -323,4 +333,4 @@ class Tree(UIControl):
 
         return UIContent(
             get_line=get_line,
-            line_count=len(self.content))
+            line_count=height)
