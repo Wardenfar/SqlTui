@@ -1,4 +1,3 @@
-from _ast import Not
 from os import walk
 from os.path import join
 
@@ -32,7 +31,8 @@ class Connection:
 
 class Driver:
 
-    def __init__(self, data, nodes):
+    def __init__(self, key, data, nodes):
+        self.key = key
         self.data = data
         self.nodes = nodes
 
@@ -226,4 +226,4 @@ for file in filenames:
     for key in data['driver']:
         driver_data = data['driver'][key]
         driver_nodes = data[key]['node']
-        DRIVERS[key] = DRIVERS_CLASSES[key](driver_data, driver_nodes)
+        DRIVERS[key] = DRIVERS_CLASSES[key](key, driver_data, driver_nodes)

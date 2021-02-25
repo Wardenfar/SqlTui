@@ -1,0 +1,12 @@
+[script.conditions]
+table = 'test'
+
+[script]
+node_type = 'table'
+conn_type = 'database'
+name = 'Replace id to 100'
+drivers = ['psql']
+query = '''
+UPDATE test SET id = 100 WHERE id = ${ID to replace};
+SELECT * FROM test WHERE id = 100;
+'''

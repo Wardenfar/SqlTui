@@ -8,6 +8,7 @@ from prompt_toolkit.keys import Keys
 from dialogs import buttons_dialog
 from driver import DRIVERS
 from keys import CustomKeyBindings
+from script import findScripts
 from tree import FILE_ITEM_LEAF
 from tree import Tree, FILE_ITEM_NODE
 from tree import TreeItem
@@ -112,7 +113,6 @@ class DbTreeItem(TreeItem):
 
         self.node_data = self.getRoot().driver.nodes[self.key]
         self.open_action = self.node_data['open'] if 'open' in self.node_data else None
-        self.actions = self.node_data['actions'] if 'actions' in self.node_data else []
         self.parents[self.key] = self
 
         has_children = 'children_query' in self.node_data or 'children_array' in self.node_data
@@ -127,6 +127,9 @@ class DbTreeItem(TreeItem):
         isOpen = False
         if 'open' in self.node_data and self.node_data['open'] is True:
             isOpen = True
+
+        self.actions = self.node_data['actions'] if 'actions' in self.node_data else []
+        self.actions = self.actions + findScripts(self)
 
         super().__init__(tree, parent, FILE_ITEM_NODE, [(self.node_data['color'], self.name)], isOpen, callback, None)
 
