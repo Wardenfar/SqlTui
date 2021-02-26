@@ -1,5 +1,4 @@
 import re
-from io import StringIO
 
 from prompt_toolkit import Application, HTML
 from prompt_toolkit.application import get_app
@@ -11,14 +10,13 @@ from prompt_toolkit.layout import Window, HSplit, BufferControl, Layout, VSplit,
 from prompt_toolkit.layout.dimension import Dimension as D
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.styles import Style
-from prompt_toolkit.widgets import HorizontalLine
-from rich.console import Console
-from rich.table import Table
+from prompt_toolkit.widgets import HorizontalLine, Label
 
 from db_tree import DatabaseTree
 from dialogs import inputs_dialog
 from frame import CustomFrame
 from keys import CustomKeyBindings
+from table import DynamicTable
 from tabs import Tabs, Tab
 
 current_connection = None
@@ -86,22 +84,22 @@ def execute(tab_name, conn, query, callback=None):
 
         if len(result) > 0:
             if len(columns) > 0:
-                table = Table()
-                for col in columns:
-                    table.add_column(col)
-                for row in result:
-                    table.add_row(*map(str, row))
-                console = Console(file=StringIO())
-                console.print(table)
-                str_output = console.file.getvalue()
-                windows['result'].buffer.text = str(len(result)) + ' Rows\n\n' + str_output
+                columnLabels = [Label(col) for col in columns]
+                rowsLabels = [[Label(str(cell)) for cell in row] for row in result]
+
+                # console = Console(file=StringIO())
+                # console.print(table)
+                # str_output = console.file.getvalue()
+                windows['result_text'].buffer.text = str(len(result)) + ' Rows'
+                windows['result_data'].reset(data=rowsLabels, header=columnLabels, viewport=(7, 12),
+                                             max=(len(columns), len(result)))
             else:
-                windows['result'].buffer.text = 'Affected rows ' + str(len(result))
+                windows['result_text'].buffer.text = 'Affected rows ' + str(len(result))
         else:
-            windows['result'].buffer.text = 'Executed !'
+            windows['result_text'].buffer.text = 'Executed ! (no rows)'
         windows['tree'].dirty = True
     except Exception as e:
-        windows['result'].buffer.text = str(e)
+        windows['result_text'].buffer.text = str(e)
 
     if callback:
         callback()
@@ -124,7 +122,8 @@ queryTabs = Tabs(
 windows = {
     'tree': tree.tree,
     'query': queryTabs,
-    'result': BufferControl(buffer=Buffer()),
+    'result_text': BufferControl(buffer=Buffer()),
+    'result_data': DynamicTable(),
     'bindings_toolbar': FormattedTextControl([('#ffffff', '[F1] [F2] [F3]')])
 }
 
@@ -148,9 +147,13 @@ root_container = FloatContainer(
                 ),
                 CustomFrame(
                     title=frame_title('Result Panel', 'F3'),
-                    body=Window(
-                        content=windows['result']
-                    ),
+                    body=HSplit([
+                        Window(
+                            content=windows['result_text'],
+                            height=2
+                        ),
+                        windows['result_data'].container
+                    ]),
                     style="class:focus.result"
                 ),
             ], width=D(weight=2))
@@ -195,7 +198,7 @@ def focusQuery(event):
 
 @kb.add(None, None, Keys.F3)
 def focusResult(event):
-    get_app().layout.focus(windows['result'])
+    get_app().layout.focus(windows['result_data'].container)
 
 
 @kb.add(None, None, Keys.ControlC)
@@ -209,36 +212,6 @@ def _execute(event):
         tab = windows['query'].current()
         text = get_tab_text(tab)
         execute(tab.name, tab.conn, text)
-
-
-style = Style.from_dict({
-    # 'focus.tree frame.border': '#ff0000',
-})
-
-
-# def dynamicStyle():
-#     rules = {}
-#     allWins = get_app().layout.find_all_windows()
-#     currWin = get_app().layout.current_window
-#
-#     for win in allWins:
-#         obj = win
-#         while obj:
-#             if hasattr(obj, 'style') and isinstance(obj.style, str) and 'class:focus' in obj.style:
-#                 break
-#             else:
-#                 obj = get_app().layout.get_parent(obj)
-#
-#         if obj:
-#             for s in obj.style.split(' '):
-#                 if s.startswith('class:focus'):
-#                     key = s.replace('class:', '') + ' frame.label'
-#                     if win == currWin:
-#                         rules[key] = '#00aa00'
-#                     elif key not in rules.keys():
-#                         rules[key] = '#aaaaaa'
-#
-#     return merge_styles([style, Style.from_dict(rules)])
 
 
 def before_render(event):
@@ -262,10 +235,9 @@ def before_render(event):
     windows['bindings_toolbar'].text = text
 
 
-allKb = merge_key_bindings([kb, tree.get_keybindings(), queryTabs.get_keybindings()])
+allKb = merge_key_bindings([kb, tree.get_keybindings(), queryTabs.get_keybindings(), windows['result_data'].get_keybindings()])
 
 app = Application(
-    # style=DynamicStyle(dynamicStyle),
     layout=layout,
     full_screen=True,
     mouse_support=True,
