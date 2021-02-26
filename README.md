@@ -2,11 +2,11 @@
 
 [![asciicast](https://asciinema.org/a/qErCo8pTVWQGAyB02aRlDKibg.png)](https://asciinema.org/a/qErCo8pTVWQGAyB02aRlDKibg)
 
- - **FullScreen app**
- - Support for : **Mysql**, **PostgreSQL**
- - **Fully Configurable**
- - You can **add support** for a driver **easily**
- - **No Shortcuts to remember** : all possible bindings are in the bottom toolbar
+- **FullScreen app**
+- Support for : **Mysql**, **PostgreSQL**
+- **Fully Configurable**
+- You can **add support** for a driver **easily**
+- **No Shortcuts to remember** : all possible bindings are in the bottom toolbar
 
 ## Installation
 
@@ -44,13 +44,16 @@ port = '3306'
 To add an action, edit `config/drivers/[name].toml`:
 
 There are two type of placeholder:
- - `#{database:id}` : replaced by the name of the node of this type and escaped as identifier (first result of the children_query) and escaped as an indentifier
- - `${Where Clause}` : ask the value to the user, the value will not be escaped
+
+- `#{database:id}` : replaced by the name of the node of this type and escaped as identifier (first result of the
+  children_query) and escaped as an indentifier
+- `${Where Clause}` : ask the value to the user, the value will not be escaped
 
 There are two type of escapes:
- - `':id'` : identifier
- - `':text'` : text
- - `''` : not escaped
+
+- `':id'` : identifier
+- `':text'` : text
+- `''` : not escaped
 
 Each node is defined like this :
 

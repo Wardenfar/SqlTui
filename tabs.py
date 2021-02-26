@@ -73,7 +73,8 @@ class Tabs(object):
         kb = CustomKeyBindings()
 
         this_has_focus = Condition(lambda: not self.isEmpty() and get_app().layout.has_focus(self.current().body))
-        this_two_tabs = Condition(lambda: not self.isEmpty() and get_app().layout.has_focus(self.current().body) and len(self.tabs) > 1)
+        this_two_tabs = Condition(
+            lambda: not self.isEmpty() and get_app().layout.has_focus(self.current().body) and len(self.tabs) > 1)
 
         def offset(off):
             index = self.tabs.index(self.selected)

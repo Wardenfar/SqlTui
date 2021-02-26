@@ -54,7 +54,6 @@ class CustomFrame(object):
         self.style = style
 
     def build(self):
-
         body = self.body
         if isinstance(body, Tabs):
             body = body.container

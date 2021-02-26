@@ -1,12 +1,10 @@
-import json
-
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import UIControl, UIContent
 from prompt_toolkit.utils import Event
 
-from dialogs import loading_dialog, remove_float, input_dialog, inputs_dialog, buttons_dialog
+from dialogs import loading_dialog, remove_float, inputs_dialog
 from keys import CustomKeyBindings
 
 FILE_ITEM_NODE = 'node'

@@ -1,5 +1,6 @@
 import re
 
+from math import floor
 from prompt_toolkit import Application, HTML
 from prompt_toolkit.application import get_app
 from prompt_toolkit.buffer import Buffer
@@ -9,8 +10,8 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import Window, HSplit, BufferControl, Layout, VSplit, FloatContainer, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension as D
 from prompt_toolkit.lexers import PygmentsLexer
-from prompt_toolkit.styles import Style
 from prompt_toolkit.widgets import HorizontalLine, Label
+from time import time
 
 from db_tree import DatabaseTree
 from dialogs import inputs_dialog
@@ -76,6 +77,25 @@ def add_tab(tab_name, conn, content):
     windows['query'].add(tab)
 
 
+last_time = -1
+last_viewport = None
+
+
+def calculateResultDataViewport():
+    global last_time, last_viewport
+    now = time()
+    if last_viewport is None or (now - last_time) > 5:
+        size = get_app().output.get_size()
+        width = size.columns / 2 - 5
+        height = size.rows - 10
+        viewport = (floor(width / 15), floor(height / 3))
+        last_time = now
+        last_viewport = viewport
+        return viewport
+    else:
+        return last_viewport
+
+
 def execute(tab_name, conn, query, callback=None):
     if windows['query'].isEmpty() or get_tab_text(windows['query'].current()) != query:
         add_tab(tab_name, conn, query)
@@ -90,8 +110,10 @@ def execute(tab_name, conn, query, callback=None):
                 # console = Console(file=StringIO())
                 # console.print(table)
                 # str_output = console.file.getvalue()
+
                 windows['result_text'].buffer.text = str(len(result)) + ' Rows'
-                windows['result_data'].reset(data=rowsLabels, header=columnLabels, viewport=(7, 12),
+                windows['result_data'].reset(data=rowsLabels, header=columnLabels,
+                                             viewport=calculateResultDataViewport(),
                                              max=(len(columns), len(result)))
             else:
                 windows['result_text'].buffer.text = 'Affected rows ' + str(len(result))
@@ -234,8 +256,18 @@ def before_render(event):
 
     windows['bindings_toolbar'].text = text
 
+    newViewport = calculateResultDataViewport()
 
-allKb = merge_key_bindings([kb, tree.get_keybindings(), queryTabs.get_keybindings(), windows['result_data'].get_keybindings()])
+    prev = windows['result_data'].viewport
+    new = {'x': newViewport[0], 'y': newViewport[1]}
+
+    if prev != new:
+        windows['result_data'].viewport = new
+        windows['result_data'].dirtyCount += 1
+
+
+allKb = merge_key_bindings(
+    [kb, tree.get_keybindings(), queryTabs.get_keybindings(), windows['result_data'].get_keybindings()])
 
 app = Application(
     layout=layout,

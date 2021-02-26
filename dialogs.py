@@ -12,7 +12,7 @@ from prompt_toolkit.keys import Keys
 from prompt_toolkit.layout import Float
 from prompt_toolkit.layout.containers import DynamicContainer, HSplit, VSplit
 from prompt_toolkit.layout.dimension import Dimension as D
-from prompt_toolkit.widgets import Button, TextArea, Dialog, Label, Shadow, Box, Frame
+from prompt_toolkit.widgets import Button, TextArea, Label, Shadow, Box, Frame
 
 
 def remove_float(float):
